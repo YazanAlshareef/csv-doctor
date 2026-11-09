@@ -1,0 +1,26 @@
+order_id,customer,city,order_date,amount,quantity,status
+1001,Alice Nguyen,Sydney,2024-01-15,120.50,2,Shipped
+1002,Bob Smith,Melbourne,16/01/2024,89.99,1,shipped
+1003,  Carla Jones ,sydney,Jan 20 2024,45.00,3,SHIPPED
+1004,Dev Patel,Brisbane,2024-01-22,210.00,1,Pending
+1005,Bob  Smith,Melbourne,23/01/2024,64.25,2,pending
+1006,Erin Walsh,SYDNEY,2024-01-25,N/A,1,Shipped
+1007,Farid Khan,Perth,2024-02-30,150.00,4,Cancelled
+1008,Gina Rossi,melbourne,02/02/2024,99.90,two,Shipped
+1009,Hugo Brown,Brisbane,not a date,75.00,1,Pending
+1010,Alice Nguyen,Sydney,2024-02-05,99999.00,1,Shipped
+1011,Ivy Chen,Perth,07/02/2024,abc,2,Shipped
+1012,Jack Lee,,2024-02-08,58.40,1,
+1013,Kim Park,Sydney,2024-02-09,72.10,5,cancelled
+1014,Leo Martin,Melbourne,10/02/2024,110.00,2,Shipped
+1015,Maya Singh,Brisbane,31/04/2024,95.75,1,Pending
+1016,Noah Kim,null,2024-02-12,130.00,3,Shipped
+1017,Olive Grant,Perth,Feb 13 2024,81.60,2,SHIPPED
+1018,Pete Young,Sydney,2024-02-14,66.00,1,Pending
+1019,Quinn Hall,Melbourne,15/02/2024,102.30,2,Shipped
+1020,Rosa Diaz,Brisbane,2024-02-16,-,1,Shipped
+1004,Dev Patel,Brisbane,2024-01-22,210.00,1,Pending
+1021,Sam Ortiz,Sydney,2024-02-17,54.20,1,Shipped
+1022,  rosa diaz,brisbane,2024-02-18,77.00,2,shipped
+1023,Tina Wu,Perth,19/02/2024,88.80,1,Pending
+1006,erin walsh,sydney,2024-01-25,N/A,1,shipped
