@@ -120,3 +120,24 @@ def test_id_like_columns_get_no_outlier_flags():
     assert analyze(frame(code=zeros)).counts()["outliers (flagged only)"] == 0
     seq = [str(x) for x in range(1000, 1010)]
     assert analyze(frame(n=seq)).counts()["outliers (flagged only)"] == 0
+
+
+def test_formula_cells_are_escaped_but_numbers_are_not():
+    df = frame(note=["=1+1", "+cmd", "@SUM(A1)", "-hello", "fine"], amt=["-5", "3", "4", "5", "6"])
+    cleaned, log = clean(df)
+    assert cleaned["note"].tolist() == ["'=1+1", "'+cmd", "'@SUM(A1)", "'-hello", "fine"]
+    assert cleaned["amt"].tolist() == ["-5", "3", "4", "5", "6"]
+    assert (log["step"] == "escape_formula").sum() == 4
+    raw, raw_log = clean(df, safe=False)
+    assert raw["note"].tolist()[0] == "=1+1" and raw_log.empty
+
+
+def test_cli_output_names_for_odd_paths(tmp_path):
+    src = tmp_path / "data.csv"
+    src.write_bytes(SAMPLE.read_bytes())
+    r = runner.invoke(app, ["clean", str(src), "-o", str(tmp_path / "v1.2.csv")])
+    assert r.exit_code == 0, r.output
+    assert (tmp_path / "v1.2.changes.csv").exists() and (tmp_path / "v1.2.report.md").exists()
+    r = runner.invoke(app, ["clean", str(src), "-o", str(tmp_path / "result")])  # no extension
+    assert r.exit_code == 0, r.output
+    assert (tmp_path / "result").is_file() and (tmp_path / "result.changes.csv").is_file()

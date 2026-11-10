@@ -63,16 +63,20 @@ def clean(
         Optional[Path], typer.Option("-o", "--output", help="Cleaned CSV. Default: <name>.clean.csv next to the input.")
     ] = None,
     dayfirst: DayFirst = True,
+    safe: Annotated[
+        bool, typer.Option("--safe/--no-safe", help="Prefix ' on text cells starting with = + - @ so Excel will not run them.")
+    ] = True,
 ) -> None:
     """Write a cleaned copy of PATH, plus <output>.changes.csv (every change) and <output>.report.md."""
     out = output or path.with_name(f"{path.stem}.clean.csv")
-    log_path = out.with_suffix(".changes.csv")
-    report_path = out.with_suffix(".report.md")
+    base = out.stem if out.suffix.lower() == ".csv" else out.name  # v1.2.csv -> v1.2, "clean" -> clean
+    log_path = out.with_name(f"{base}.changes.csv")
+    report_path = out.with_name(f"{base}.report.md")
     _refuse_input(path, out, log_path, report_path)
 
     df = _read(path)
     before = analyze(df, dayfirst)
-    cleaned, log = run_clean(df, dayfirst)
+    cleaned, log = run_clean(df, dayfirst, safe)
     after = analyze(cleaned, dayfirst)
 
     out.parent.mkdir(parents=True, exist_ok=True)

@@ -3,12 +3,15 @@ from __future__ import annotations
 
 import pandas as pd
 
-from .analyze import inspect_column, is_null, squash
+from .analyze import inspect_column, is_null, is_number, squash
 
 LOG_COLUMNS = ["row", "column", "step", "old", "new"]
 
 
-def clean(df: pd.DataFrame, dayfirst: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
+FORMULA_STARTS = ('=', '+', '-', '@', '＠', '＝')  # includes full-width @ and =
+
+
+def clean(df: pd.DataFrame, dayfirst: bool = True, safe: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Return (cleaned frame, change log). Row numbers are 1-based data rows, header not counted."""
     out = df.copy()
     log: list[tuple[int, str, str, str, str]] = []
@@ -46,6 +49,11 @@ def clean(df: pd.DataFrame, dayfirst: bool = True) -> tuple[pd.DataFrame, pd.Dat
             if v in facts.case_map:
                 change(i, name, "fix_case", v, facts.case_map[v])
                 cells[i] = facts.case_map[v]
+        if safe:  # Excel and Sheets run cells that start with these. Negative numbers are fine.
+            for i, v in enumerate(cells):
+                if v.startswith(FORMULA_STARTS) and not is_number(v):
+                    cells[i] = "'" + v
+                    change(i, name, "escape_formula", v, cells[i])
         out[col] = cells
 
     seen: dict[tuple, int] = {}

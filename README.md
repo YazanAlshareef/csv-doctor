@@ -20,7 +20,8 @@ No LLM and no network. It is plain pandas, typer and pytest.
 | Bad dates | date columns with values that are not real dates (`2024-02-30`, `not a date`) | empties the cell |
 | Mixed date formats | `16/01/2024`, `Jan 20 2024`, `2024-01-22` | rewrites to `YYYY-MM-DD` |
 | Duplicates | exact repeats, and repeats that differ only by case, spaces or null spelling | keeps the first row, drops the rest |
-| Outliers | numbers outside 1.5 x IQR (needs 8 or more numbers in the column) | flags only, never changes |
+| Outliers | numbers outside 1.5 x IQR (needs 8 or more numbers in the column; skipped for ID-like columns: name has `id`, leading zeros, or unique evenly spaced integers) | flags only, never changes |
+| Spreadsheet formulas | text cells starting with `=`, `+`, `-` or `@` (not plain numbers like `-5`) | adds a leading `'` so Excel shows them as text (`--no-safe` turns this off) |
 
 Row numbers in reports and logs are data rows, starting at 1, not counting the header.
 
@@ -39,7 +40,7 @@ csv-doctor profile examples/messy_orders_synthetic.csv
 csv-doctor clean examples/messy_orders_synthetic.csv -o out/clean.csv
 ```
 
-`clean` writes three files next to the `-o` path: `clean.csv`, `clean.changes.csv` (one line per change: row, column, step, old value, new value) and `clean.report.md`. If you leave out `-o` it writes `<name>.clean.csv` next to the input. It refuses to run if any output path is the input file.
+`clean` writes three files next to the `-o` path: `clean.csv`, `clean.changes.csv` (one line per change: row, column, step, old value, new value) and `clean.report.md`. The log and report names come from the output name without `.csv`, so `v1.2.csv` gives `v1.2.changes.csv`, and an output with no extension `result` gives `result.changes.csv`. If you leave out `-o` it writes `<name>.clean.csv` next to the input. It refuses to run if any output path is the input file.
 
 Ambiguous dates such as `03/04/2024` are read day first. Pass `--monthfirst` to change that. Dates starting with a year are always read as year-month-day.
 
@@ -105,13 +106,14 @@ I built this with an AI coding assistant. It wrote the first version of the code
 
 ## Limits
 
+- A date column is one where half the values look like dates, or 30% if the column name has the whole word `date` (`order_date`, `startDate`; not `candidate`).
 - Everything is read as text. It does not guess currencies: `$1,200` counts as text, not a number.
 - A real value of `none`, `-` or `?` is treated as missing.
 - Ambiguous dates need the `--dayfirst/--monthfirst` choice. The tool cannot know which your file uses.
 - Mixed types in a text column are flagged, not fixed.
 - Case fixing picks the most common spelling. On a tie it prefers mixed case.
 - The whole file is loaded into memory.
-- Cells that start with `=` are kept as they were. If you open the output in Excel, check them.
+- Formula-looking text gets a leading `'` by default. That changes the cell value, and it is logged as `escape_formula`. Use `--no-safe` to keep cells as they were.
 - Tested on the synthetic sample and small test frames only, not on a range of real files.
 
 ## Files
