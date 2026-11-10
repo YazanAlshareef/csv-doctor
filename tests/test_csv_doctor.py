@@ -98,3 +98,25 @@ def test_cli_empty_file(tmp_path):
     p = tmp_path / "e.csv"
     p.write_text("")
     assert runner.invoke(app, ["profile", str(p)]).exit_code == 2
+
+
+def test_word_like_date_in_name_is_not_a_date_column():
+    # "candidate" contains "date" but is not a date; 2 of 10 values look like dates
+    vals = ["2024-01-01", "2024-01-02"] + ["Ann", "Bo", "Cy", "Di", "Ed", "Flo", "Gus", "Hal"]
+    for name in ["candidate", "update", "validate"]:
+        c = analyze(frame(**{name: vals})).columns[0]
+        assert c.facts.kind == "text"
+    cleaned, log = clean(frame(candidate=vals))
+    assert cleaned["candidate"].tolist() == vals and log.empty
+    assert analyze(frame(order_date=vals)).columns[0].facts.kind == "text"  # 20% is below the 30% bar
+    assert analyze(frame(startDate=["2024-01-01", "2024-01-02", "2024-01-03", "Ann", "Bo", "Cy", "Di", "Ed"])).columns[0].facts.kind == "date"
+
+
+def test_id_like_columns_get_no_outlier_flags():
+    spread = [str(x) for x in [1, 2, 3, 4, 5, 6, 7, 8, 9, 5000]]
+    assert analyze(frame(score=spread)).counts()["outliers (flagged only)"] == 1
+    assert analyze(frame(user_id=spread)).counts()["outliers (flagged only)"] == 0
+    zeros = ["007", "012", "013", "014", "015", "016", "017", "018", "019", "9999"]
+    assert analyze(frame(code=zeros)).counts()["outliers (flagged only)"] == 0
+    seq = [str(x) for x in range(1000, 1010)]
+    assert analyze(frame(n=seq)).counts()["outliers (flagged only)"] == 0

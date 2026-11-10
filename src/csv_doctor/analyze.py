@@ -20,6 +20,25 @@ DATE_LIKE = [
 MIN_OUTLIER_VALUES = 8
 
 
+def _words(name: str) -> list[str]:
+    """order_date -> [order, date]; startDate -> [start, date]; candidate -> [candidate]."""
+    return [w.lower() for w in re.split(r"[^A-Za-z]+|(?<=[a-z])(?=[A-Z])", name) if w]
+
+
+def _name_says_date(name: str) -> bool:
+    return bool({"date", "dates"} & set(_words(name)))
+
+
+def _looks_like_id(name: str, vals: list[str]) -> bool:
+    """IDs are labels, not measurements: an outlier check on them is noise."""
+    if "id" in _words(name) or any(len(v) > 1 and v[0] == "0" and v[1].isdigit() for v in vals):
+        return True
+    if all(re.fullmatch(r"[-+]?\d+", v) for v in vals) and len(set(vals)) == len(vals) and len(vals) > 2:
+        n = sorted(int(v) for v in vals)
+        return len({b - a for a, b in zip(n, n[1:])}) == 1  # evenly spaced, e.g. 1001, 1002, 1003
+    return False
+
+
 def squash(v: str) -> str:
     """Trim the ends and collapse runs of whitespace to one space."""
     return " ".join(v.split())
@@ -74,7 +93,7 @@ def inspect_column(name: str, cells: list[str], dayfirst: bool = True) -> Column
     date_share = sum(is_date_like(v) for _, v in present) / n
     num_share = sum(is_number(v) for _, v in present) / n
 
-    if date_share >= 0.5 or ("date" in name.lower() and date_share >= 0.2):
+    if date_share >= 0.5 or (_name_says_date(name) and date_share >= 0.3):
         facts.kind = "date"
         for i, v in present:
             iso = parse_date(v, dayfirst)
@@ -86,7 +105,7 @@ def inspect_column(name: str, cells: list[str], dayfirst: bool = True) -> Column
         facts.kind = "numeric"
         facts.conflicts = [(i, v) for i, v in present if not is_number(v)]
         nums = [(i, v) for i, v in present if is_number(v)]
-        if len(nums) >= MIN_OUTLIER_VALUES:
+        if len(nums) >= MIN_OUTLIER_VALUES and not _looks_like_id(name, [v for _, v in nums]):
             s = pd.Series([float(v) for _, v in nums])
             q1, q3 = s.quantile(0.25), s.quantile(0.75)
             iqr = q3 - q1
