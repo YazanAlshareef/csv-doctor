@@ -162,3 +162,23 @@ def test_renamed_headers_are_reported(tmp_path):
 def test_version_flag():
     r = runner.invoke(app, ["--version"])
     assert r.exit_code == 0 and r.output.startswith("csv-doctor 0.")
+
+
+def test_extra_field_in_every_row_keeps_data_aligned(tmp_path):
+    src = tmp_path / "x.csv"
+    src.write_text("a,b\n1,2,3\n4,5,6\n", encoding="utf-8")
+    out = tmp_path / "o.csv"
+    r = runner.invoke(app, ["clean", str(src), "-o", str(out)])
+    assert r.exit_code == 0, r.output
+    assert "more fields than the header" in r.output
+    assert out.read_text(encoding="utf-8").splitlines() == ["a,b,extra_field", "1,2,3", "4,5,6"]
+
+
+def test_two_extra_fields_keep_data_aligned(tmp_path):
+    src = tmp_path / "x.csv"
+    src.write_text("a,b\n1,2,3,4\n5,6,7,8\n", encoding="utf-8")
+    out = tmp_path / "o.csv"
+    r = runner.invoke(app, ["clean", str(src), "-o", str(out)])
+    assert r.exit_code == 0, r.output
+    assert "more fields than the header" in r.output
+    assert out.read_text(encoding="utf-8").splitlines() == ["a,b,extra_field,extra_field_2", "1,2,3,4", "5,6,7,8"]
