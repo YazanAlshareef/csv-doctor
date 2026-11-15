@@ -162,3 +162,21 @@ def test_renamed_headers_are_reported(tmp_path):
 def test_version_flag():
     r = runner.invoke(app, ["--version"])
     assert r.exit_code == 0 and r.output.startswith("csv-doctor 0.")
+
+
+def test_version_strings_are_not_dates():
+    assert parse_date("1.2.3", dayfirst=True) is None
+    assert parse_date("1.10.0", dayfirst=True) is None
+    assert parse_date("05/02/24", dayfirst=True) == "2024-02-05"
+    df = frame(v=["1.2.3", "1.10.0", "2.0.1", "3.1.4"])
+    cleaned, log = clean(df)
+    assert cleaned["v"].tolist() == df["v"].tolist() and log.empty
+
+
+def test_dotted_two_digit_year_dates_still_parse():
+    assert parse_date("15.01.24", dayfirst=True) == "2024-01-15"
+    assert parse_date("31.12.23", dayfirst=True) == "2023-12-31"
+    assert parse_date("1.2.3", dayfirst=True) is None
+    assert parse_date("1.10.12", dayfirst=True) is None
+    assert parse_date("32.01.24", dayfirst=True) is None
+    assert parse_date("15.13.24", dayfirst=True) is None
