@@ -141,3 +141,24 @@ def test_cli_output_names_for_odd_paths(tmp_path):
     r = runner.invoke(app, ["clean", str(src), "-o", str(tmp_path / "result")])  # no extension
     assert r.exit_code == 0, r.output
     assert (tmp_path / "result").is_file() and (tmp_path / "result.changes.csv").is_file()
+
+
+def test_change_log_file_does_not_hold_live_formulas(tmp_path):
+    src = tmp_path / "f.csv"
+    src.write_text("a,b\n=1+1,x\n", encoding="utf-8")
+    assert runner.invoke(app, ["clean", str(src), "-o", str(tmp_path / "o.csv")]).exit_code == 0
+    lines = (tmp_path / "o.changes.csv").read_text(encoding="utf-8").splitlines()
+    assert lines[1] == "1,a,escape_formula,'=1+1,'=1+1"
+
+
+def test_renamed_headers_are_reported(tmp_path):
+    src = tmp_path / "h.csv"
+    src.write_text("a,a,\n1,2,3\n", encoding="utf-8")
+    r = runner.invoke(app, ["profile", str(src)])
+    assert r.exit_code == 0
+    assert "'a' was renamed to 'a.1'" in r.output and "was renamed to 'Unnamed: 2'" in r.output
+
+
+def test_version_flag():
+    r = runner.invoke(app, ["--version"])
+    assert r.exit_code == 0 and r.output.startswith("csv-doctor 0.")

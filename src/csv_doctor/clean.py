@@ -11,6 +11,11 @@ LOG_COLUMNS = ["row", "column", "step", "old", "new"]
 FORMULA_STARTS = ('=', '+', '-', '@', '＠', '＝')  # includes full-width @ and =
 
 
+def escape_formula(v: str) -> str:
+    """Prefix ' on text that a spreadsheet would run as a formula. Numbers like -5 stay as they are."""
+    return "'" + v if v.startswith(FORMULA_STARTS) and not is_number(v) else v
+
+
 def clean(df: pd.DataFrame, dayfirst: bool = True, safe: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Return (cleaned frame, change log). Row numbers are 1-based data rows, header not counted."""
     out = df.copy()
@@ -51,8 +56,8 @@ def clean(df: pd.DataFrame, dayfirst: bool = True, safe: bool = True) -> tuple[p
                 cells[i] = facts.case_map[v]
         if safe:  # Excel and Sheets run cells that start with these. Negative numbers are fine.
             for i, v in enumerate(cells):
-                if v.startswith(FORMULA_STARTS) and not is_number(v):
-                    cells[i] = "'" + v
+                if escape_formula(v) != v:
+                    cells[i] = escape_formula(v)
                     change(i, name, "escape_formula", v, cells[i])
         out[col] = cells
 
