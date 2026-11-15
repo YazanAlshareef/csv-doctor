@@ -162,3 +162,16 @@ def test_renamed_headers_are_reported(tmp_path):
 def test_version_flag():
     r = runner.invoke(app, ["--version"])
     assert r.exit_code == 0 and r.output.startswith("csv-doctor 0.")
+
+
+def test_safe_escapes_headers_and_log_column(tmp_path):
+    src = tmp_path / "h.csv"
+    src.write_text("=cmd|calc,b\n x ,y\n", encoding="utf-8")
+    out = tmp_path / "o.csv"
+    assert runner.invoke(app, ["clean", str(src), "-o", str(out)]).exit_code == 0
+    assert out.read_text(encoding="utf-8").splitlines()[0] == "'=cmd|calc,b"
+    assert "'=cmd|calc" in (tmp_path / "o.changes.csv").read_text(encoding="utf-8")
+    assert ",=cmd" not in (tmp_path / "o.changes.csv").read_text(encoding="utf-8")
+    out2 = tmp_path / "n.csv"
+    assert runner.invoke(app, ["clean", str(src), "-o", str(out2), "--no-safe"]).exit_code == 0
+    assert out2.read_text(encoding="utf-8").splitlines()[0] == "=cmd|calc,b"
