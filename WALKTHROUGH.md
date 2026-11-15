@@ -1,42 +1,44 @@
 # Walkthrough
 
-Plain-English tour of each file, so you can explain it in an interview.
+A tour of each file, so I can explain the project out loud.
 
 ## The idea
 
-Two commands. `profile` reads a CSV and reports problems. `clean` fixes what can be fixed safely, logs each fix, and writes a new file. The input is never touched.
+There are two commands. `profile` reads a CSV and reports problems. `clean` fixes what can be fixed safely, logs each fix, and writes a new file. The input is never touched.
 
-All data is read as text (`dtype=str`). If pandas guessed types on load, it would hide problems: `NA` would silently become NaN and `007` would become `7`.
+Everything is read as text (`dtype=str`). If pandas guessed types on load, it would hide the problems I am looking for: `NA` would quietly become NaN and `007` would become `7`.
 
 ## Files
 
 **`src/csv_doctor/analyze.py`** finds problems. `inspect_column` looks at one column and decides its kind:
-- date, if at least half the values look like dates (or the name has the whole word "date" and 30% do, so `candidate` does not count)
-- numeric, if at least half look like numbers
-- text otherwise
+- date, if half the values look like dates, or 30% when the column name has the whole word "date" (so `candidate` does not count)
+- numeric, if half look like numbers
+- text, otherwise
 
-Then it lists the problems for that kind: values of the wrong type, bad dates, spellings that differ only by case, and outliers. Outliers use the IQR rule, and ID-like columns (name has `id`, leading zeros, evenly spaced unique integers) are skipped: below Q1 - 1.5 x IQR or above Q3 + 1.5 x IQR. `analyze` runs that over every column and also finds duplicate rows (exact, and "near" where only case, spaces or null spelling differ).
+Then it lists what is wrong for that kind: wrong-type values, bad dates, spellings that differ only by case, and outliers. Outliers use the IQR rule, below Q1 - 1.5 x IQR or above Q3 + 1.5 x IQR. ID-like columns are skipped, because an outlier check on an ID means nothing. `analyze` runs this over every column and also finds duplicate rows, exact ones and "near" ones that differ only by case, spaces or null spelling.
 
-**`src/csv_doctor/clean.py`** fixes problems. For each column it trims whitespace, turns null words into empty cells, then uses the same `inspect_column` result to fix dates, empty non-numbers and unify casing, and put a leading `'` on text cells that start with `=`, `+`, `-` or `@` (formula injection, `--no-safe` turns it off). Last, it drops duplicate rows. Each fix adds a log line: row, column, step, old value, new value. Sharing `inspect_column` means profile and clean always agree on what a problem is.
+**`src/csv_doctor/clean.py`** fixes problems. For each column it trims whitespace and turns null words into empty cells. Then it uses the same `inspect_column` result to fix dates, empty the non-numbers and unify casing. Text cells that start with `=`, `+`, `-` or `@` get a leading `'` so Excel does not run them as formulas (`--no-safe` turns that off). Duplicate rows are dropped last. Every fix adds a log line: row, column, step, old value, new value. Because profile and clean share `inspect_column`, they always agree on what counts as a problem.
 
-**`src/csv_doctor/report.py`** turns results into Markdown: issue counts, a per-column table, and a few examples. The clean report adds a before/after table and counts per step.
+**`src/csv_doctor/report.py`** turns results into Markdown: issue counts, a table per column, a few examples. The clean report adds the before and after table and a count per step.
 
-**`src/csv_doctor/cli.py`** is the command line, built with typer. It reads the file, calls analyze and clean, writes the files, and refuses to write over the input path. Bad files (empty, broken rows) exit with code 2 and a message.
+**`src/csv_doctor/cli.py`** is the command line, built with typer. It reads the file, calls analyze and clean, writes the files, and refuses to write over the input. It also has `--version`. Files that cannot be read (empty, broken rows) exit with code 2 and a message. If pandas renamed a blank or repeated header, it prints a warning. The change log goes through the same formula escaping as the cleaned file.
 
-**`src/csv_doctor/__main__.py`** lets you run `python -m csv_doctor` too.
+**`src/csv_doctor/__main__.py`** lets `python -m csv_doctor` work too.
 
-**`examples/messy_orders_synthetic.csv`** is made-up data with planted problems. Not real.
+**`examples/messy_orders_synthetic.csv`** is made-up data with planted problems. It is not real.
 
-**`tests/test_csv_doctor.py`** has the pytest tests: date parsing, each check, outliers flagged but not changed, the log matches the changes, cleaning twice changes nothing the second time, the input file is byte-identical after `clean`, the CLI refuses to overwrite the input, date-like words in column names, ID columns, formula escaping, and output names like `v1.2.csv`.
+**`tests/test_csv_doctor.py`** has 16 pytest tests. They cover date parsing, each check, outliers flagged but not changed, the log matching the changes, cleaning twice changing nothing the second time, the input file staying byte-identical, and the CLI refusing to overwrite it. The rest cover date-like words in column names, ID columns, formula escaping (file and log), output names like `v1.2.csv`, renamed headers, and `--version`.
 
-**`pyproject.toml`** says how to install: dependencies (pandas, typer), the `csv-doctor` command, and pytest as a dev extra.
+**`pyproject.toml`** holds the install info: dependencies (pandas, typer), the `csv-doctor` command, pytest as a dev extra, and the package metadata.
 
-**`.gitignore`, `LICENSE`**: ignore the virtual environment and output; MIT licence.
+**`.github/workflows/ci.yml`** installs the package and runs pytest on Python 3.10 and 3.12, then runs `clean` on the sample file. I have not seen it run on GitHub yet.
 
-## Questions you might get
+**`.gitignore`, `LICENSE`** ignore the virtual environment and output, and set the MIT licence.
 
-- **Why read everything as text?** To avoid silent guessing and to see the raw values that cause problems.
-- **Why not delete outliers?** A big number can be a typo or a real event. The tool flags it and leaves the decision to a person.
-- **How do you handle dates in different formats?** Check each value against a few date shapes, parse with pandas, write ISO `YYYY-MM-DD`. Impossible dates like 30 February are blanked and logged. Ambiguous ones follow a flag, day first by default.
-- **How do you know it did not damage data?** Every change is logged with the old value. Cleaning an already-cleaned file gives an empty log (tested).
-- **What would you do next?** Currency and thousands separators, a dry-run mode, column-type overrides.
+## Questions I might get
+
+- **Why read everything as text?** To avoid silent guessing and to see the raw values that cause the trouble.
+- **Why not delete outliers?** A big number can be a typo or a real event. The tool flags it and leaves the call to a person.
+- **How are dates in different formats handled?** Each value is checked against a few date shapes, parsed with pandas, and written as `YYYY-MM-DD`. Impossible dates like 30 February are blanked and logged. Ambiguous ones follow a flag, day first by default.
+- **How do I know it did not damage data?** Every change is logged with the old value, and cleaning an already clean file gives an empty log. A test checks that.
+- **What would I do next?** Currency and thousands separators, a dry-run mode, column-type overrides.
