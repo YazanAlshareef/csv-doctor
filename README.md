@@ -139,6 +139,12 @@ I used an AI coding assistant for the first version of the code and tests, worki
 
 See [WALKTHROUGH.md](WALKTHROUGH.md) for what each file does.
 
+## Diagrams
+
+- [Components and data classes](docs/diagrams/components.md)
+- [Command sequences](docs/diagrams/sequences.md)
+- [Column logic](docs/diagrams/column-logic.md)
+
 ## License
 
 MIT
