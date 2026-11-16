@@ -162,3 +162,15 @@ def test_renamed_headers_are_reported(tmp_path):
 def test_version_flag():
     r = runner.invoke(app, ["--version"])
     assert r.exit_code == 0 and r.output.startswith("csv-doctor 0.")
+
+
+def test_unwritable_output_exits_2_without_traceback(tmp_path):
+    src = tmp_path / "in.csv"
+    src.write_text("a,b\n1,2\n", encoding="utf-8")
+    blocker = tmp_path / "blocker"
+    blocker.write_text("x", encoding="utf-8")  # a file, so a folder cannot be made under it
+    for args in (["clean", str(src), "-o", str(blocker / "out.csv")],
+                 ["profile", str(src), "-o", str(blocker / "r.md")]):
+        r = CliRunner().invoke(app, args)
+        assert r.exit_code == 2 and "Cannot write" in r.output
+        assert not isinstance(r.exception, OSError)
