@@ -213,3 +213,15 @@ def test_dotted_two_digit_year_dates_still_parse():
     assert parse_date("1.10.12", dayfirst=True) is None
     assert parse_date("32.01.24", dayfirst=True) is None
     assert parse_date("15.13.24", dayfirst=True) is None
+
+
+def test_unwritable_output_exits_2_without_traceback(tmp_path):
+    src = tmp_path / "in.csv"
+    src.write_text("a,b\n1,2\n", encoding="utf-8")
+    blocker = tmp_path / "blocker"
+    blocker.write_text("x", encoding="utf-8")  # a file, so a folder cannot be made under it
+    for args in (["clean", str(src), "-o", str(blocker / "out.csv")],
+                 ["profile", str(src), "-o", str(blocker / "r.md")]):
+        r = CliRunner().invoke(app, args)
+        assert r.exit_code == 2 and "Cannot write" in r.output
+        assert not isinstance(r.exception, OSError)
