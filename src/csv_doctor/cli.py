@@ -105,9 +105,10 @@ def clean(
     after = analyze(cleaned, dayfirst)
 
     out.parent.mkdir(parents=True, exist_ok=True)
+    if safe:  # headers are cells too, and the log holds old values and column names
+        cleaned = cleaned.rename(columns=escape_formula)
+        log = log.assign(**{c: log[c].map(escape_formula) for c in ("column", "old", "new")})
     cleaned.to_csv(out, index=False, encoding="utf-8")
-    if safe:  # the log holds the old values, so it can hold formulas too
-        log = log.assign(old=log["old"].map(escape_formula), new=log["new"].map(escape_formula))
     log.to_csv(log_path, index=False, encoding="utf-8")
     report = clean_markdown(before, after, log, path.name, out.name, log_path.name, dayfirst)
     _write(report_path, report)
