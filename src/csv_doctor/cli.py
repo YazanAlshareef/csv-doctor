@@ -34,6 +34,13 @@ def _read(path: Path) -> pd.DataFrame:
     except (pd.errors.EmptyDataError, pd.errors.ParserError, UnicodeDecodeError) as e:
         typer.echo(f"Cannot read {path}: {e}", err=True)
         raise typer.Exit(2)
+    if not isinstance(df.index, pd.RangeIndex):
+        # Every row has extra fields: pandas hid the leading ones in the index. Put them back.
+        cols = list(df.columns)
+        extra = ["extra_field"] + [f"extra_field_{i}" for i in range(2, df.index.nlevels + 1)]
+        typer.echo(f"Warning: rows have more fields than the header; the extra last fields are kept as {', '.join(repr(e) for e in extra)}.", err=True)
+        df = df.reset_index(drop=False)
+        df.columns = [*cols, *extra]
     _warn_renamed_headers(path, df)
     return df.fillna("")
 
