@@ -2,7 +2,7 @@
 
 A command line tool that finds problems in a messy CSV file, writes a Markdown report, and saves a cleaned copy.
 
-Most quick cleaning scripts change data and say nothing about it. I wanted one that logs every change, flags outliers instead of deleting them, and never touches the original file.
+Most quick cleaning scripts change data and say nothing about it. I wanted one that logs every change, flags outliers instead of deleting them, and never touches the original file. It has no AI in it and makes no network calls.
 
 This is the top of the real report from `csv-doctor clean examples/messy_orders_synthetic.csv -o out/clean.csv` (the sample is synthetic, more on that below):
 
@@ -111,15 +111,11 @@ The sample file `examples/messy_orders_synthetic.csv` is **synthetic**. I wrote 
 
 Outliers stay in the cleaned file. Whether `99999.00` is a typo or a real big order is a call for a person.
 
-## How AI helped
-
-I used an AI coding assistant for the first version of the code and tests, working from my brief. I read the logic and ran it myself. The tool has no AI in it and makes no network calls.
-
 ## What broke
 
 - Dates like `2024-02-05` came out as `2024-05-02`. I passed day-first to pandas for every date, and pandas swapped month and day on year-first values. The first sample run showed it. Year-first dates now skip the flag, and a test covers it.
 - My first duplicate test failed because it used one column, so the rows really were duplicates. The test data was wrong, not the code.
-- A review found that a column called `candidate` with a few date-like values was treated as a date column, and the other cells were blanked. The name check now matches whole words.
+- I found that a column called `candidate` with a few date-like values was treated as a date column, and the other cells were blanked. The name check now matches whole words.
 - The change log kept the old value of formula cells as-is, so opening the log in Excel would run them. The log is now escaped too.
 
 ## Limits
