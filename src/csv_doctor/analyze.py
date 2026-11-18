@@ -13,7 +13,9 @@ NULL_TOKENS = {"", "na", "n/a", "#n/a", "null", "none", "nan", "-", "?"}
 
 NUMBER = re.compile(r"^[-+]?(\d+(\.\d*)?|\.\d+)$")
 DATE_LIKE = [
-    re.compile(r"^\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}$"),  # 2024-01-15, 15/01/2024
+    # Same separator twice, a 4-digit year, or a 2-digit year with / or -. Dotted 2-digit year only as dd.mm.yy
+    # (day 01-31, month 01-12), so 1.2.3 and 1.10.0 stay versions.
+    re.compile(r"^(\d{4}([-/.])\d{1,2}\2\d{1,2}|\d{1,2}([-/.])\d{1,2}\3\d{4}|\d{1,2}([-/])\d{1,2}\4\d{2}|(0[1-9]|[12]\d|3[01])\.(0[1-9]|1[0-2])\.\d{2})$"),  # 2024-01-15, 15/01/2024, 15/01/24, 15.01.24
     re.compile(r"^\d{1,2} [A-Za-z]{3,9},? \d{4}$"),  # 15 Jan 2024
     re.compile(r"^[A-Za-z]{3,9} \d{1,2},? \d{4}$"),  # Jan 15 2024
 ]
