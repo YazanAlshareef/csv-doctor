@@ -131,6 +131,21 @@ Outliers stay in the cleaned file. Whether `99999.00` is a typo or a real big or
 - The CI workflow tests Python 3.10 and 3.12. I only ran it locally on 3.12, and I have not seen the Actions run yet.
 - I did not run a separate lint step.
 
+## Web demo
+
+A small Gradio page wraps the same profile and clean code. It is not deployed anywhere yet.
+
+```
+pip install -r requirements.txt
+python app.py
+```
+
+Open the local address it prints. Upload a CSV or press "Load sample CSV" to see the profile report, a cleaned preview, the change log, and downloads for the cleaned file and the log.
+
+- Limits: 5 MB and 100,000 rows. Other files are rejected with a message.
+- Nothing is stored: the upload is read in memory and the downloads go in a temporary folder.
+- Only `.csv` files in UTF-8 are accepted. The cleaning is the same as `csv-doctor clean`.
+
 ## Files
 
 See [WALKTHROUGH.md](WALKTHROUGH.md) for what each file does.
