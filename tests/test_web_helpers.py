@@ -19,9 +19,11 @@ def test_sample_loads_and_cleans():
     assert len(pd.read_csv(o.log_path)) == 37
 
 
-def test_size_cap_real_limit():
-    with pytest.raises(wh.InputError, match="5 MB"):
-        wh.parse_csv_bytes(b"a\n" + b"x" * (wh.MAX_BYTES + 1))
+def test_size_cap(tmp_path):
+    with pytest.raises(wh.InputError, match="limit is 5 MB"):
+        wh.parse_csv_bytes(b"a\n" + b"x" * wh.MAX_BYTES)
+    o = wh.run(write(tmp_path, "big.csv", b"a\n" + b"x" * wh.MAX_BYTES))
+    assert o.cleaned_path is None and "limit is 5 MB" in o.status
 
 
 def test_row_cap(tmp_path, monkeypatch):
